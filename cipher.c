@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <mcrypt.h>
-
-#define MODE "cfb"
-#define ALGORITHM "rijndael-256"
+#include "cipher.h"
 
 
 int encrypt(
@@ -27,7 +25,7 @@ int encrypt(
 }
 
 int decrypt(
-	FILE **encrfp, FILE **decrfp, void *key, int keysize, void *IV) {
+	FILE **encrfp, FILE **decrfp, char *key, int keysize, char *IV) {
 	
 	MCRYPT td = mcrypt_module_open(
 		ALGORITHM, NULL, MODE, NULL);
