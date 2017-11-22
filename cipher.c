@@ -41,7 +41,7 @@ int decrypt(
 	return 0;
 }
 
-int main(void) {
+/*int main(void) {
 	
 	FILE *plainfp = fopen("zimmermann.txt", "r");
 	FILE *encrfp = fopen("encrypted.txt", "w");
@@ -67,4 +67,4 @@ int main(void) {
 	}
 
 	return 0;
-}
+}*/
