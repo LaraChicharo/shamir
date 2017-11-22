@@ -41,7 +41,19 @@ int main(int argc, char** argv) {
 		fclose(plainfp);
 		fclose(encrfp);
 	} else if (strcmp(argv[1], "d") == 0) {
-		// decipher
+		char *pass = (char*)malloc(MAX_PASS_LEN * sizeof(char));
+		int keysize;
+		
+		get_password(&pass, &keysize);
+		
+		FILE *encrfp = fopen(argv[2], "r");
+		FILE *decrfp = fopen("decrypted.txt", "w");
+		
+		decrypt(&encrfp, &decrfp, pass, keysize);
+
+		free(pass);
+		fclose(encrfp);
+		fclose(decrfp);
 	} else {
 		// bad input
 	}
