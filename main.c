@@ -6,7 +6,7 @@
 #define MAX_PASS_LEN 3
 
 
-int get_password(char **pass) {
+void get_password(char **pass, int *keysize) {
 	int c;
 	int i = 0;
 	puts("Type password then INTRO");
@@ -18,21 +18,32 @@ int get_password(char **pass) {
 		}
 	}
 	(*pass)[i] = '\0';
+	*keysize = i;
 }
 
 
 int main(int argc, char** argv) {
 	if (strcmp(argv[1], "c") == 0) {
-		// validate data
-		// FILE *plainfp = fopen(argv[2]);
+		// not catching errors yet
+
 		char *pass = (char*)malloc(MAX_PASS_LEN * sizeof(char));
-		get_password(&pass);
+		int keysize;
+		
+		get_password(&pass, &keysize);
+		
+		FILE *plainfp = fopen(argv[2], "r");
+		FILE *encrfp = fopen("encrypted.aes", "w");
+		
+		encrypt(&plainfp, &encrfp, pass, keysize);
+		
 		printf("Your pass: %s\n", pass);
-		// encrypt();
 		free(pass);
+		fclose(plainfp);
+		fclose(encrfp);
 	} else if (strcmp(argv[1], "d") == 0) {
 		// decipher
 	} else {
 		// bad input
 	}
+	return 0;
 }
