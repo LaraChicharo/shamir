@@ -17,7 +17,6 @@ void string_as_binary(
 	
 	int i;
 	int j;
-	char res;
 	char k;
 	for (i = 0; i < str_size - 1; i++) {
 		k = (*str)[i];
@@ -28,7 +27,8 @@ void string_as_binary(
 				(*buff)[i*8 + 7-j] = '0';
 		}
 	}
-	*buff[str_size*8 + 1] = '\0';
+	puts("done with for");
+	(*buff)[str_size*8 + 1] = '\0';
 }
 
 void hash_string(char **str, char **buff) {
@@ -39,15 +39,15 @@ void hash_string(char **str, char **buff) {
 
 void hash_string_to_int(char **str, char **buff) {
 	int str_len = strlen(*str);
-	char *tempbuff = malloc((sizeof(char) * str_len * 8) + 1);
-	hash_string(str, &tempbuff);	
-	string_as_binary(&tempbuff, str_len + 1, buff);
+	char *tempbuff = malloc((sizeof(char) * 32) + 1);
+	hash_string(str, &tempbuff);
+	string_as_binary(&tempbuff, 33, buff);
 	free(tempbuff);
 }
 
 int main(int argc, char** argv) {
 	int str_len = strlen(argv[1]);
-	char *buff = malloc((sizeof(char) * str_len * 8) + 1);
+	char *buff = malloc((sizeof(char) * 32 * 8) + 1);
 	hash_string_to_int(&argv[1], &buff);
 	/*string_as_binary(
 		&argv[1], str_len + 1, &buff);*/
