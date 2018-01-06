@@ -9,11 +9,11 @@
 #define URANDOM "/dev/urandom"
 #define MPZ_LIMIT 256
 
-/*struct SHARE {
-	struct mpz_t *x;
-	struct mpz_t *y;
+struct SHARE_ {
+	mpz_t *x;
+	mpz_t *y;
 };
-*/
+
 
 /**
  * Converts 8 bytes into an unsigned long long
@@ -105,7 +105,7 @@ void print_polynomial(mpz_t** poly, int nterms) {
 	int i;
 	for (i=0; i<nterms; i++) {
 		mpz_out_str(stdout, 10, (*poly)[i]);
-		puts("\n");
+		puts("");
 	}
 }
 
@@ -122,7 +122,80 @@ void build_polynomial(mpz_t** polynomial, int nterms, mpz_t secret) {
 	gmp_randinit_default(state);
 	gmp_randseed_ui(state, read_ulong_urandom());
 	fill_polynomial(polynomial, state, nterms, MPZ_LIMIT, secret);
+	puts("before randclear");
 	gmp_randclear(state);
+	puts("after randclear");
+}
+
+void eval_polynomial(
+	unsigned int x, mpz_t** poly, int nterms, mpz_t* res) {
+	mpz_t term_res;
+	mpz_init(term_res);
+
+	int i;			
+	for (i=0; i<nterms; i++) {
+		mpz_mul_ui(term_res, (*poly)[i], pow(x, i));
+		mpz_add(*res, term_res, *res);
+	}
+	mpz_clear(term_res);
+}
+
+/**
+ * Prints an array of SHARES.
+ */
+void print_shares(struct SHARE_** shares, int n) {
+	int i;
+	for (i=0; i<n; i++) {
+		printf("%s", "(");
+		mpz_out_str(stdout, 10, *(*shares)[i].x);
+		mpz_out_str(stdout, 10, *(*shares)[i].y);
+		printf("%s", ")");
+	}
+}
+
+void free_shares(struct SHARE_** shares, int n) {
+	int i;
+	for (i=0; i<n; i++) {
+		mpz_clear(*(*shares)[i].x);
+		mpz_clear(*(*shares)[i].y);
+	}
+	free(*shares);
+}
+
+void create_shares(int nshares, int min, mpz_t secret) {
+	if (nshares < min) {
+		fprintf(
+			stderr,
+			"%s\n",
+			"The number of shares cant be less than min.");
+		exit(EINVAL);  // Invalid argument
+	}
+	int nterms = min - 1;
+	mpz_t* polynomial = malloc(nterms * sizeof(mpz_t));
+	puts("build poly");
+	build_polynomial(&polynomial, nshares, secret);
+	puts("polynomial:");
+	print_polynomial(&polynomial, nterms);
+	puts("after end polynomial");
+	struct SHARE_* shares = malloc(sizeof(struct SHARE_) * nshares);
+		
+	mpz_t xmpz;
+	mpz_t res;
+	mpz_init2(xmpz, MPZ_LIMIT);
+	mpz_init2(res, MPZ_LIMIT);
+	unsigned int i;
+	for (i=0; i<nshares; i++) {
+		mpz_set_ui(xmpz, i);
+		shares[i].x = &xmpz;
+		eval_polynomial(i, &polynomial, nterms, &res);
+		shares[i].y = &res; 
+	}
+	print_shares(&shares, nshares);
+
+	mpz_clear(xmpz);
+	mpz_clear(res);
+	clear_polynomial(&polynomial, nterms);
+	free_shares(&shares, nshares);
 }
 
 
@@ -132,12 +205,13 @@ int main(void) {
 	mpz_init(secret);
 	mpz_set_ui(secret, 2);
 
-	int nterms = 5;
-	mpz_t* polynomial = malloc(nterms * sizeof(mpz_t));
-	build_polynomial(&polynomial, nterms, secret);
-
-	print_polynomial(&polynomial, nterms);
-	clear_polynomial(&polynomial, nterms);
+	int nshares = 5;
+	int min = 4;
+	//mpz_t* polynomial = malloc((min - 1) * sizeof(mpz_t));
+	//build_polynomial(&polynomial, min - 1, secret);
+	
+	create_shares(nshares, min, secret);
+	//clear_polynomial(&polynomial, min - 1);
 	mpz_clear(secret);
 	return 0;
 }
