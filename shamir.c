@@ -7,13 +7,13 @@
 #include <math.h>
 
 #define URANDOM "/dev/urandom"
-#define MPZ_LIMIT 256
+#define MPZ_LIMIT 3
 
-/*struct SHARE {
-	struct mpz_t *x;
-	struct mpz_t *y;
+struct SHARE_ {
+	mpz_t x;
+	mpz_t y;
 };
-*/
+
 
 /**
  * Converts 8 bytes into an unsigned long long
@@ -105,7 +105,7 @@ void print_polynomial(mpz_t** poly, int nterms) {
 	int i;
 	for (i=0; i<nterms; i++) {
 		mpz_out_str(stdout, 10, (*poly)[i]);
-		puts("\n");
+		puts(",");
 	}
 }
 
@@ -125,6 +125,92 @@ void build_polynomial(mpz_t** polynomial, int nterms, mpz_t secret) {
 	gmp_randclear(state);
 }
 
+/**
+ * Evaluates 'x' on the polynomial 'poly'. The result is a real number.
+ * @param x: integer value.
+ * @param poly: polynomial to be evaluated.
+ * @param nterms: size of polynomial.
+ * @param res: mpz number, the result will be stored here.
+ */
+void eval_polynomial(
+	unsigned int x, mpz_t** poly, int nterms, mpz_t* res) {
+	mpz_t term_res;
+	mpz_init(term_res);
+
+	int i;			
+	for (i=0; i<nterms; i++) {
+		mpz_mul_ui(term_res, (*poly)[i], pow(x, i));
+		mpz_add(*res, term_res, *res);
+	}
+	mpz_clear(term_res);
+}
+
+/**
+ * Prints an array of struct SHARES.
+ * @param shares: array of struct SHARES.
+ * @param n: size of the array.
+ */
+void print_shares(struct SHARE_** shares, int n) {
+	int i;
+	for (i=0; i<n; i++) {
+		printf("%s", "(");
+		mpz_out_str(stdout, 10, (*shares)[i].x);
+		printf("%s", ", ");
+		mpz_out_str(stdout, 10, (*shares)[i].y);
+		printf("%s\n", ")");
+	}
+}
+
+/**
+ * Frees an array of struct SHARES.
+ * æparam shares: array of struct SHARES.
+ * @param n: size of the array.
+ */
+void free_shares(struct SHARE_** shares, int n) {
+	int i;
+	for (i=0; i<n; i++) {
+		mpz_clear((*shares)[i].x);
+		mpz_clear((*shares)[i].y);
+	}
+	free(*shares);
+}
+
+/**
+ * Given a secret to build upon, a random polynomial is generated,
+ * a specified number of shares are created arround that polynomial
+ * @param nshares: ammount of shares to create.
+ * @min: min number of shares needed to retrieve the secret.
+ * @secret: The secret mentioned earlier.
+ */
+void create_shares(int nshares, int min, mpz_t secret) {
+	if (nshares < min) {
+		fprintf(
+			stderr,
+			"%s\n",
+			"The number of shares cant be less than min.");
+		exit(EINVAL);  // Invalid argument
+	}
+	int nterms = min - 1;
+	mpz_t* polynomial = malloc(nterms * sizeof(mpz_t));
+	build_polynomial(&polynomial, nterms, secret);
+	puts("polynomial:");
+	print_polynomial(&polynomial, nterms);
+	struct SHARE_* shares = malloc(sizeof(struct SHARE_) * nshares);
+		
+	unsigned int i;
+	for (i=0; i<nshares; i++) {
+		mpz_init2(shares[i].x, MPZ_LIMIT);
+		mpz_init2(shares[i].y, MPZ_LIMIT);
+		mpz_set_ui(shares[i].x, i + 1);
+		eval_polynomial(i + 1, &polynomial, nterms, &shares[i].y);
+	}
+	puts("shares:");
+	print_shares(&shares, nshares);
+
+	clear_polynomial(&polynomial, nterms);
+	free_shares(&shares, nshares);
+}
+
 
 int main(void) {
 
@@ -132,12 +218,10 @@ int main(void) {
 	mpz_init(secret);
 	mpz_set_ui(secret, 2);
 
-	int nterms = 5;
-	mpz_t* polynomial = malloc(nterms * sizeof(mpz_t));
-	build_polynomial(&polynomial, nterms, secret);
+	int nshares = 5;
+	int min = 4;
+	create_shares(nshares, min, secret);
 
-	print_polynomial(&polynomial, nterms);
-	clear_polynomial(&polynomial, nterms);
 	mpz_clear(secret);
 	return 0;
 }
