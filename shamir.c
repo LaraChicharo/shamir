@@ -4,8 +4,16 @@
 #include <gmp.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <math.h>
 
 #define URANDOM "/dev/urandom"
+#define MPZ_LIMIT 256
+
+/*struct SHARE {
+	struct mpz_t *x;
+	struct mpz_t *y;
+};
+*/
 
 /**
  * Converts 8 bytes into an unsigned long long
@@ -46,7 +54,7 @@ unsigned long long read_ulong_urandom(void) {
 		close(rdata);
 		error_handling_urandom();
 	} else {
-		char rd[8];  // 64 bit
+		char rd[8];  // to make a 64 bit int
 		if (read(rdata, rd, sizeof rd) < 0) {
 			close(rdata);
 			error_handling_urandom();
@@ -57,23 +65,79 @@ unsigned long long read_ulong_urandom(void) {
 }
 
 /**
- * Example generating a random mpz number.
+ * Given the mpz polynomial 'poly', fills it with random terms,
+ * Except the independent term, it associates to it a given number.
+ * @param poly: polynomial to fill.
+ * @param state: Initialized state to generate random ints with mpz.
+ * @param nterms: size of the polynomial.
  */
-void print_mpz_randint(void) {
-	mpz_t rand;
-	mpz_init(rand);
+void fill_polynomial(
+	mpz_t** poly, gmp_randstate_t state, int nterms,
+	int limit, mpz_t secret) {
+	mpz_init2((*poly)[0], limit);
+	mpz_set((*poly)[0], secret);
+	int i;
+	for (i=1; i < nterms; i++) {
+		mpz_init2((*poly)[i], limit);
+		mpz_urandomb((*poly)[i], state, limit);
+	}
+}
+
+/**
+ * Frees a given polynomial from memory.
+ * @param poly: the polynomial to fill,
+ * @param nterms: size of the polynomial.
+ */
+void clear_polynomial(mpz_t** poly, int nterms) {
+	int i;
+	for (i = 0; i < nterms; i++) {
+		mpz_clear((*poly)[i]);
+	}
+	free(*poly);
+}
+
+/**
+ * Prints a given polynomial.
+ * @param poly: the polynomial to print,
+ * @param nterms: size of the polynomial.
+ */
+void print_polynomial(mpz_t** poly, int nterms) {
+	int i;
+	for (i=0; i<nterms; i++) {
+		mpz_out_str(stdout, 10, (*poly)[i]);
+		puts("\n");
+	}
+}
+
+/**
+ * Given a mpz polynomial, fills it with random terms,
+ * Except the independent term, it associates to it a given number.
+ * @param polynomial: polynomial to fill.
+ * @param nterms: size of the polynomial.
+ * @param secret: number that will be placed as the independent term.
+ */
+void build_polynomial(mpz_t** polynomial, int nterms, mpz_t secret) {
+	
 	gmp_randstate_t state;
 	gmp_randinit_default(state);
 	gmp_randseed_ui(state, read_ulong_urandom());
-	mpz_urandomb(rand, state, 8);
-
-	mpz_out_str(stdout, 10, rand);
-	printf("%s","\n");
+	fill_polynomial(polynomial, state, nterms, MPZ_LIMIT, secret);
 	gmp_randclear(state);
-	mpz_clear(rand);
 }
 
+
 int main(void) {
-	print_mpz_randint();
+
+	mpz_t secret;
+	mpz_init(secret);
+	mpz_set_ui(secret, 2);
+
+	int nterms = 5;
+	mpz_t* polynomial = malloc(nterms * sizeof(mpz_t));
+	build_polynomial(&polynomial, nterms, secret);
+
+	print_polynomial(&polynomial, nterms);
+	clear_polynomial(&polynomial, nterms);
+	mpz_clear(secret);
 	return 0;
 }
