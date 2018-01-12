@@ -211,8 +211,7 @@ void create_shares(int nshares, int min, mpz_t secret) {
 	free_shares(&shares, nshares);
 }
 
-
-int main(void) {
+int main(int argc, char** args) {
 
 	mpz_t secret;
 	mpz_init(secret);
@@ -225,3 +224,6 @@ int main(void) {
 	mpz_clear(secret);
 	return 0;
 }
+
+
+
