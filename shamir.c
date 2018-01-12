@@ -1,13 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <gmp.h>
+#include <x86_64-linux-gnu/gmp.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <math.h>
+#include "limit.h"
 
 #define URANDOM "/dev/urandom"
-#define MPZ_LIMIT 3
 
 struct SHARE_ {
 	mpz_t x;
@@ -211,8 +211,12 @@ void create_shares(int nshares, int min, mpz_t secret) {
 	free_shares(&shares, nshares);
 }
 
+void reader(FILE* read);
 
-int main(void) {
+int main(int argc, char** args) {
+
+	FILE *read = fopen(args[1], "r");
+	reader(read);
 
 	mpz_t secret;
 	mpz_init(secret);
@@ -225,3 +229,25 @@ int main(void) {
 	mpz_clear(secret);
 	return 0;
 }
+
+void reader(FILE *read){
+	int block;
+	int i;
+	mpz_t x0;
+	mpz_t y0;
+	while(!feof(read)){
+		fscanf(read, "%d", &block);
+		mpz_init2(x0, MPZ_LIMIT);
+		mpz_init2(y0, MPZ_LIMIT);
+		struct SHARE_ point = {.x=x0 , .y=y0};
+		mpz_set(point.x, block);
+		fscanf(read, "%d", &block);
+		mpz_set(point.y, block);
+		printf("%s", "(");
+		mpz_out_str(stdout, 10, point.x);
+		printf("%s", ", ");
+		mpz_out_str(stdout, 10, point.y);
+		printf("%s\n", ")");
+	}
+}
+
