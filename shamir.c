@@ -189,12 +189,15 @@ void create_shares(int nshares, int min, mpz_t secret) {
 	free_shares(&shares, nshares);
 }
 
-void reader(FILE* read);
+int define_length(read);
+void reader(FILE* read, struct SHARE_ **poly);
 
-int main(void) {
+int main(int argc, char *args[]) {
 
 	FILE *read = fopen(args[1], "r");
-	reader(read);
+	int length = define_length(read);
+	struct SHARE_* poly = malloc(sizeof(struct SHARE_) * length);
+	reader(read, &poly);
 
 	mpz_t secret;
 	mpz_init(secret);
@@ -214,23 +217,32 @@ int main(void) {
 	return 0;
 }
 
-void reader(FILE *read){
-	int block;
-	int i;
-	mpz_t x0;
-	mpz_t y0;
+int define_length(FILE *read){
+	int length = 0;
+	char block[255];
 	while(!feof(read)){
-		fscanf(read, "%d", &block);
-		mpz_init2(x0, MPZ_LIMIT);
-		mpz_init2(y0, MPZ_LIMIT);
-		struct SHARE_ point = {.x=x0 , .y=y0};
-		mpz_set(point.x, block);
-		fscanf(read, "%d", &block);
-		mpz_set(point.y, block);
-		printf("%s", "(");
+		fscanf(read, "%s", block);
+		fscanf(read, "%s", block);
+		length++;
+	}
+	return length;
+}
+
+void reader(FILE *read, struct SHARE_ **poly){
+	char block[1024];
+	int i = 0;
+	while(!feof(read)){
+		mpz_init2((*poly)[i].x, MPZ_LIMIT);
+		mpz_init2((*poly)[i].y, MPZ_LIMIT);
+		fscanf(read, "%s", block);
+		mpz_set_str((*poly)[i].x, block, 3);
+		fscanf(read, "%s", block);
+		mpz_set_str((*poly)[i].y, block, 3);
+		/*printf("%s", "(");
 		mpz_out_str(stdout, 10, point.x);
 		printf("%s", ", ");
 		mpz_out_str(stdout, 10, point.y);
-		printf("%s\n", ")");
+		printf("%s\n", ")");*/
+		i++;
 	}
 }
