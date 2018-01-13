@@ -27,7 +27,6 @@ void string_as_binary(
 				(*buff)[i*8 + 7-j] = '0';
 		}
 	}
-	puts("done with for");
 	(*buff)[str_size*8 + 1] = '\0';
 }
 
@@ -49,8 +48,6 @@ int main(int argc, char** argv) {
 	int str_len = strlen(argv[1]);
 	char *buff = malloc((sizeof(char) * 32 * 8) + 1);
 	hash_string_to_int(&argv[1], &buff);
-	/*string_as_binary(
-		&argv[1], str_len + 1, &buff);*/
 	printf("binary repr: %s\n", buff);
 	free(buff);
 	return 0;
