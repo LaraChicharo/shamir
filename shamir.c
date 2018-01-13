@@ -190,14 +190,16 @@ void create_shares(int nshares, int min, mpz_t secret) {
 }
 
 int define_length(read);
-void reader(FILE* read, struct SHARE_ **poly);
+void reader(FILE* read, struct SHARE_ **evaluations);
+void lagrange_reconstruction(struct SHARE_ **evaluations);
 
 int main(int argc, char *args[]) {
 
 	FILE *read = fopen(args[1], "r");
 	int length = define_length(read);
-	struct SHARE_* poly = malloc(sizeof(struct SHARE_) * length);
-	reader(read, &poly);
+	struct SHARE_* evaluations = malloc(sizeof(struct SHARE_) * length);
+	reader(read, &evaluations);
+	lagrange_reconstruction(&evaluations);
 
 	mpz_t secret;
 	mpz_init(secret);
@@ -228,16 +230,16 @@ int define_length(FILE *read){
 	return length;
 }
 
-void reader(FILE *read, struct SHARE_ **poly){
+void reader(FILE *read, struct SHARE_ **evaluations){
 	char block[1024];
 	int i = 0;
 	while(!feof(read)){
-		mpz_init2((*poly)[i].x, MPZ_LIMIT);
-		mpz_init2((*poly)[i].y, MPZ_LIMIT);
+		mpz_init2((*evaluations)[i].x, MPZ_LIMIT);
+		mpz_init2((*evaluations)[i].y, MPZ_LIMIT);
 		fscanf(read, "%s", block);
-		mpz_set_str((*poly)[i].x, block, 3);
+		mpz_set_str((*evaluations)[i].x, block, 3);
 		fscanf(read, "%s", block);
-		mpz_set_str((*poly)[i].y, block, 3);
+		mpz_set_str((*evaluations)[i].y, block, 3);
 		/*printf("%s", "(");
 		mpz_out_str(stdout, 10, point.x);
 		printf("%s", ", ");
@@ -245,4 +247,8 @@ void reader(FILE *read, struct SHARE_ **poly){
 		printf("%s\n", ")");*/
 		i++;
 	}
+}
+
+void lagrange_reconstruction(struct SHARE_ **evaluations){
+
 }
