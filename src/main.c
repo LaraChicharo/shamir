@@ -4,26 +4,7 @@
 #include <limits.h>
 #include <errno.h>
 #include "cipher.h"
-
-#define MAX_LEN_FILENAME 100  // Max len for filenames, including null
-#define MAX_PASS_LEN 3
-#define ENCRYPTED_EXT ".aes"
-
-
-void get_password(char **pass, int *keysize) {
-	int c;
-	int i = 0;
-	puts("Type password then INTRO");
-	while((c = getchar()) != EOF && c != '\n') {
-		(*pass)[i++] = c;
-		if (i > MAX_PASS_LEN) {
-			fputs("Password too long\n", stderr);
-			exit(1);
-		}
-	}
-	(*pass)[i] = '\0';
-	*keysize = i;
-}
+#include "main.h"
 
 /**
  * Prints an error message on stderr.
@@ -34,6 +15,24 @@ void get_password(char **pass, int *keysize) {
 void error_message(int errcode, char* msg) {
 	fprintf(stderr, "%s\n", msg);
 	exit(errcode);
+}
+
+/**
+ * Promts the user for a password to encrypt a document.
+ * @param pass the variable where the password will be stored.
+ * @param keysize a pointer to be filled with the size of the password.
+ */
+void get_password(char **pass, int *keysize) {
+	int c;
+	int i = 0;
+	puts("Type password then INTRO");
+	while((c = getchar()) != EOF && c != '\n') {
+		(*pass)[i++] = c;
+		if (i > MAX_PASS_LEN)
+			error_message(1, "Password too long\n");
+	}
+	(*pass)[i] = '\0';
+	*keysize = i;
 }
 
 /**
