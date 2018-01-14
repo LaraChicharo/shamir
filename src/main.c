@@ -6,6 +6,7 @@
 #include "cipher.h"
 #include "main.h"
 
+
 /**
  * Prints an error message on stderr.
  * Procedes to exit the program reporting the given error code.
@@ -197,7 +198,6 @@ int main(int argc, char** argv) {
 			sizeof(char) * get_namesize_decrypted_file(argv[3]));
 		get_name_decrypted_file(argv[3], &original_name);
 		
-
 		FILE *decrfp = fopen(original_name, "w");
 
 		decrypt_(&encrfp, &decrfp, pass, keysize);
