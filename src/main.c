@@ -125,6 +125,41 @@ void get_name_encrypted_file(char* original_name, char** encname) {
 	strcpy(*encname, newname_);
 }
 
+/**
+ * Gets the size of the name of the decrypted file.
+ * Substracts the lenght of the ext. to the name of the encrypted file.
+ * @param encname filename of encrypted document.
+ * @returns the size of the name of the decrypted file.
+ */
+int get_namesize_decrypted_file(char* encname) {
+	return strlen(encname) - strlen(ENCRYPTED_EXT);
+}
+
+/**
+ * Gets the name of the decrypted file to create it.
+ * @param encname filename of encrypted document.
+ * @param original name pointer to str to store the name in it.
+ */
+void get_name_decrypted_file(char* encname, char** original_name) {
+	int i = 0;
+	while (i < get_namesize_decrypted_file(encname))
+		(*original_name)[i] = encname[i++];
+}
+
+/*
+ * Validates the arguments when a user wants to decryp a file.
+ * Exits with an error message if things are not right.
+ * @param argv command line arguments.
+ */
+void validate_decipher_option(char** argv) {
+	if (strlen(argv[2]) > MAX_LEN_FILENAME ||
+		strlen(argv[3]) > MAX_LEN_FILENAME)
+		error_message(1, "Filename too long.");
+	validate_file(
+		argv[2], "r", "Error reading file containing shares.");
+	validate_file(argv[3], "r", "Error reading the encrypted file.");
+}
+
 int main(int argc, char** argv) {
 	if (argc < 4)
 		error_message(1, "Too few arguments");
@@ -142,7 +177,7 @@ int main(int argc, char** argv) {
 		get_name_encrypted_file(argv[5], &encname);
 		FILE *encrfp = fopen(encname, "w");
 		
-		encrypt(&plainfp, &encrfp, pass, keysize);
+		encrypt_(&plainfp, &encrfp, pass, keysize);
 
 		printf("Your pass: %s\n", pass);
 		free(pass);
@@ -150,17 +185,26 @@ int main(int argc, char** argv) {
 		fclose(plainfp);
 		fclose(encrfp);
 	} else if (strcmp(argv[1], "d") == 0) {
+		validate_decipher_option(argv);
+		
 		char *pass = (char*)malloc(MAX_PASS_LEN * sizeof(char));
 		int keysize;
 
 		get_password(&pass, &keysize);
 
-		FILE *encrfp = fopen(argv[2], "r");
-		FILE *decrfp = fopen("decrypted.txt", "w");
+		FILE *encrfp = fopen(argv[3], "r");
 
-		decrypt(&encrfp, &decrfp, pass, keysize);
+		char* original_name = malloc(
+			sizeof(char) * get_namesize_decrypted_file(argv[3]));
+		get_name_decrypted_file(argv[3], &original_name);
+		
+
+		FILE *decrfp = fopen(original_name, "w");
+
+		decrypt_(&encrfp, &decrfp, pass, keysize);
 
 		free(pass);
+		free(original_name);
 		fclose(encrfp);
 		fclose(decrfp);
 	} else {

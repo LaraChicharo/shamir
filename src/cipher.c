@@ -3,7 +3,7 @@
 #include "cipher.h"
 
 
-int encrypt(
+int encrypt_(
 	FILE **plainfp, FILE **encrfp, char* key, int keysize) {
 	
 	MCRYPT td = mcrypt_module_open(
@@ -24,7 +24,7 @@ int encrypt(
 	return 0;
 }
 
-int decrypt(
+int decrypt_(
 	FILE **encrfp, FILE **decrfp, char *key, int keysize) {
 	
 	MCRYPT td = mcrypt_module_open(

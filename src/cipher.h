@@ -5,7 +5,7 @@
 // size varies from one algorithm to another, other factors may affect.
 // use mcrypt_enc_get_iv_size(MCRYPT td) to find out the necessary size
 
-int encrypt(
+int encrypt_(
 	FILE **plainfp, FILE **encrfp, char* key, int keysize);
-int decrypt(
+int decrypt_(
 	FILE **encrfp, FILE **decrfp, char *key, int keysize);
