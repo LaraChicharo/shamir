@@ -197,7 +197,7 @@ int main(int argc, char *args[]) {
 
 	FILE *read = fopen(args[1], "r");
 	int length = define_length(read);
-	struct SHARE_* evaluations = malloc(sizeof(struct SHARE_) * length);
+	struct SHARE_* evaluations = malloc(sizeof(struct SHARE_) * length-1);
 	reader(read, &evaluations);
 	lagrange_reconstruction(&evaluations);
 
@@ -233,6 +233,7 @@ int define_length(FILE *read){
 void reader(FILE *read, struct SHARE_ **evaluations){
 	char block[1024];
 	int i = 0;
+	rewind(read);
 	while(!feof(read)){
 		mpz_init2((*evaluations)[i].x, MPZ_LIMIT);
 		mpz_init2((*evaluations)[i].y, MPZ_LIMIT);
@@ -241,9 +242,9 @@ void reader(FILE *read, struct SHARE_ **evaluations){
 		fscanf(read, "%s", block);
 		mpz_set_str((*evaluations)[i].y, block, 3);
 		/*printf("%s", "(");
-		mpz_out_str(stdout, 10, point.x);
+		mpz_out_str(stdout, 10, *evaluations.x);
 		printf("%s", ", ");
-		mpz_out_str(stdout, 10, point.y);
+		mpz_out_str(stdout, 10, *evaluations.y);
 		printf("%s\n", ")");*/
 		i++;
 	}
