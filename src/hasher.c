@@ -30,13 +30,24 @@ void string_as_binary(
 	(*buff)[str_size*8 + 1] = '\0';
 }
 
+/**
+ * Hashes a string using the sha 256 algorithm.
+ * @param str string to hash.
+ * @param buff buffer in where the hashed string will be stored.
+ */
 void hash_string(char **str, char **buff) {
 	MHASH mh = mhash_init(MHASH_SHA256);
 	mhash(mh, *str, strlen(*str));
 	mhash_deinit(mh, *buff);
 }
 
-void hash_string_to_int(char **str, char **buff) {
+/**
+ * Hashes a string and then takes the hased str
+ * to its binary representation.
+ * @param str the string to hash.
+ * @buff buffer where the binary representation will be stored.
+ */
+void hash_string_to_binary_repr(char **str, char **buff) {
 	int str_len = strlen(*str);
 	char *tempbuff = malloc((sizeof(char) * 32) + 1);
 	hash_string(str, &tempbuff);
@@ -47,7 +58,7 @@ void hash_string_to_int(char **str, char **buff) {
 int main(int argc, char** argv) {
 	int str_len = strlen(argv[1]);
 	char *buff = malloc((sizeof(char) * 32 * 8) + 1);
-	hash_string_to_int(&argv[1], &buff);
+	hash_string_to_binary_repr(&argv[1], &buff);
 	printf("binary repr: %s\n", buff);
 	free(buff);
 	return 0;
