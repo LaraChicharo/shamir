@@ -238,9 +238,9 @@ void reader(FILE *read, struct SHARE_ **evaluations){
 		mpz_init2((*evaluations)[i].x, MPZ_LIMIT);
 		mpz_init2((*evaluations)[i].y, MPZ_LIMIT);
 		fscanf(read, "%s", block);
-		mpz_set_str((*evaluations)[i].x, block, 3);
+		mpz_set_str((*evaluations)[i].x, block, 10);
 		fscanf(read, "%s", block);
-		mpz_set_str((*evaluations)[i].y, block, 3);
+		mpz_set_str((*evaluations)[i].y, block, 10);
 		/*printf("%s", "(");
 		mpz_out_str(stdout, 10, *evaluations.x);
 		printf("%s", ", ");
