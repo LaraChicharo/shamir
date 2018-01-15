@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <assert.h>
 //I need include from here
-#include <x86_64-linux-gnu/gmp.h>
+#include <gmp.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <math.h>
@@ -110,8 +110,9 @@ void print_polynomial(mpz_t** poly, int nterms) {
 	int i;
 	for (i=0; i<nterms; i++) {
 		mpz_out_str(stdout, 10, (*poly)[i]);
-		puts(",");
+		printf("%s", " ");
 	}
+	puts("");
 }
 
 /**
@@ -198,14 +199,14 @@ void create_shares(int nshares, int min, mpz_t secret) {
  * @param read: pointer to the file given.
  */
 int define_length(FILE *read){
-	int length = 0;
-	char block[255];
-	while(!feof(read)){
-		fscanf(read, "%s", block);
-		fscanf(read, "%s", block);
-		length++;
-	}
-	return length;
+	int read_int;
+	char *l = malloc(201*sizeof(char));
+	int i=0;
+	size_t *n;
+	while ((read_int = getline(&l, n, read)) != -1)
+		i++;
+	free(l);
+	return i;
 }
 
 /**
@@ -214,19 +215,23 @@ int define_length(FILE *read){
  * @param read: pointer to the file given.
  * @param evaluations: an array of struct's SHARE_ 
  */
-void reader(FILE *read, struct SHARE_ **evaluations){
-	char block[1024];
+void reader(FILE *read, struct SHARE_ **evals){
 	int i = 0;
+	char* l1 = malloc(201 * sizeof(char));
+	size_t *n;
 	rewind(read);
-	while(!feof(read)){
-		mpz_init2((*evaluations)[i].x, MPZ_LIMIT);
-		mpz_init2((*evaluations)[i].y, MPZ_LIMIT);
-		fscanf(read, "%s", block);
-		mpz_set_str((*evaluations)[i].x, block, 10);
-		fscanf(read, "%s", block);
-		mpz_set_str((*evaluations)[i].y, block, 10);
+	int read_int;
+	while ((read_int = getline(&l1, n, read)) != -1) {
+		mpz_init2((*evals)[i].x, MPZ_LIMIT);
+		mpz_init2((*evals)[i].y, MPZ_LIMIT);
+		char n1[100];
+		char n2[100];
+		sscanf(l1, "%s %s", &n1, &n2);
+		mpz_set_str((*evals)[i].x, n1, 10);
+		mpz_set_str((*evals)[i].y, n2, 10);
 		i++;
 	}
+	free(l1);
 }
 
 /**
@@ -244,137 +249,137 @@ void create_eval_polynomials(struct SHARE_ **evaluations, mpz_t ***aux, int leng
 	}
 }
 
-
-
-/**
- * It reallocates the positions of the array in order to do the correct 
- * polynomial products for the lagrange_basis.
- */
-void right_position_poly(mpz_t ***aux, int length){
-	int i,j;
-	mpz_t temp[2];
-	mpz_init2(temp[0], MPZ_LIMIT);
-	mpz_init2(temp[1], MPZ_LIMIT);
-	mpz_set(temp[0], (*aux)[0][0]);
-	mpz_set(temp[1], (*aux)[0][1]);
-	for(i = 0; i < length-1; i++){
-		for(j = 0; j < 2; j++){
-			mpz_set((*aux)[i][j], (*aux)[i+1][j]);
-		}
-	}
-	mpz_set((*aux)[length-1][0], temp[0]);
-	mpz_set((*aux)[length-1][1], temp[1]);
-}
-
-/**
- * It reallocates the positions of the points given by the user, in order
- * to make the correct quotient for the basis polynomials.
- */
-void right_position_points(struct SHARE_ **evaluations, int length){
+void init_polynomial(mpz_t** poly, int size) {
 	int i;
-	struct SHARE_ temp;
-	mpz_init2(temp.x, MPZ_LIMIT);
-	mpz_init2(temp.y, MPZ_LIMIT);
-	mpz_set(temp.x, (*evaluations)[0].x);
-	mpz_set(temp.y, (*evaluations)[0].y);
-	for (i = 1; i < length-1; i++){
-		mpz_set((*evaluations)[i].x, (*evaluations)[i+1].x);
-		mpz_set((*evaluations)[i].y, (*evaluations)[i+1].y);
-	}
-	mpz_set((*evaluations)[length-1].x, temp.x);
-	mpz_set((*evaluations)[length-1].y, temp.y);
+	for (i=0; i < size; i++)
+		mpz_init2((*poly)[i], MPZ_LIMIT);
 }
 
-/**
- * It makes the product of two polynomails and then save the result in a
- * matrix (poly) in the correspondent position. In order to assist the
- * mult_polyinomails.
- */
-void mult_assistant(
-	mpz_t **op1, mpz_t **op2, mpz_t ***poly, int position, int length){
+void copy_polynomial(mpz_t **a, mpz_t **b, int size) {
+	int i;
+	for (i=0; i < size; i++)
+		mpz_set((*a)[i], (*b)[i]);
+}
 
-	int i,j;
+void mult_polynomials(
+	mpz_t **poly, mpz_t *a, mpz_t *b, int al, int bl){
+
+	int i, j;
 	mpz_t aux;
 	mpz_init2(aux, MPZ_LIMIT);
-	mpz_set_ui(aux, 0);
-
-	for (i = 0; i < 2; i++){
-		for (j = 0; j < 2; j++){
-			//(*poly)[position][i+j] += (*op1)[i] + (*op2)[j];
-			mpz_add(aux, (*op1)[i], (*op2)[j]);
-			/*printf("%s", "[");
-			mpz_out_str(stdout, 10, (*poly)[position][i+j]);
-			printf("%s\t", "]")*/
-			mpz_add((*poly)[position][i+j], (*poly)[position][i+j], aux);
-
-		}
-	}
-	printf("%s", "[");
-	mpz_out_str(stdout, 10, (*poly)[0][0]);
-	printf("%s", ", ");
-	mpz_out_str(stdout, 10, (*poly)[0][1]);
-	printf("%s", ", ");
-	mpz_out_str(stdout, 10, (*poly)[0][2]);
-	printf("%s", ", ");
-	printf("%s\t", "]");
-	printf("\n");
-}
-
-/**
- * It makes the product of all the polynomials needed for each lagrange 
- * polynomial-basis'. Then it saves the resulting polynomial in a matrix.
- * The position represents wich point of the evaluations won't be used.
- */
-void mult_polyinomails(
-	mpz_t ***aux, int length, mpz_t ***poly, int position){
-	int i;
-	mult_assistant(&((*aux)[0]), &((*aux)[1]), poly, position, length);
+	mpz_t *ac = malloc((al + 1) * sizeof(mpz_t));
+	init_polynomial(&ac, al+1);
+	copy_polynomial(&ac, poly, al + 1);	
 	
-	/*if(length != 3){
-		for(i = 2; i < length; i++){
-			mult_assistant(&((*aux)[i]), &((*poly)[position]), poly, position);
+	init_polynomial(poly, al+1);
+	for (i = 0; i <= al; i++){
+		for (j = 0; j <= bl; j++){
+			mpz_mul(aux, (ac)[i], (b)[j]);
+			mpz_add((*poly)[i+j], (*poly)[i+j], aux);
 		}
-	}*/
+	}
 }
 
 /**
- * It calculates the correspondent quotient to his polynomial .
+ * Frees a mxn matrix of mpz_t
  */
-void div_assistant(struct SHARE_ **evaluations, int length, mpz_t quotient){
-
+void free_matrix(mpz_t*** matrix, int m, int n) {
 	int i;
-	mpz_init2(quotient, MPZ_LIMIT);
-	mpz_set(quotient, (*evaluations)[0].x);
-	mpz_t aux[length-1];
-	for(i = 0; i < length-1; i++){
-		mpz_init2(aux[i], MPZ_LIMIT);
+	for (i=0; i<m; i++) {
+		clear_polynomial(&((*matrix)[i]), n);
 	}
-	for(i = 1; i < length; i++){
-		mpz_sub(aux[i-1], quotient, (*evaluations)[i].x);
-	}
-	mpz_mul(quotient, aux[0], aux[1]);
-	for (i = 2; i < length-1; i++){
-		mpz_mul(quotient, quotient, aux[i]);
+	free(*matrix);
+}
+
+void fill_aux_polynomial(mpz_t*** aux, int length) {
+	int i, j;
+	for(i = 0; i < length; i++){
+		(*aux)[i] = malloc((length) * sizeof(mpz_t));
+		for(j = 0; j < length; j++){
+			mpz_init2((*aux)[i][j], MPZ_LIMIT);
+		}
 	}
 }
 
-/**
- * It divides all of the polynomials needed by the correspondent quotient
- * to finish the lagrange_basis. It saves the resulting polynomial in the matrix
- * poly.
- */
-void div_polynomials_by_cte(
-	mpz_t ***poly, struct SHARE_ **evaluations, int position, int length){
+void create_x0_minus_x1_polynomial(mpz_t** poly, mpz_t x0, mpz_t x1) {
+	mpz_t minus_x1;
+	mpz_init2(minus_x1, MPZ_LIMIT);
+	mpz_mul_si(minus_x1, x1, -1);
+	
+	//x - x1
+	mpz_set((*poly)[0], minus_x1);
+	mpz_set((*poly)[1], x0);
+}
 
-	mpz_t quotient;
-	div_assistant(evaluations, length, quotient);
 
-	int i,j;
-	for(i = 0; i < length; i++){
-		for(i = 0; i < length; i++){
-			
-		}
+void calculate_denominator(
+	struct SHARE_ **evals, int i, int auxlen, mpz_t *res) {
+	
+	mpz_t dvalue;
+	mpz_t aux;
+	mpz_t accum;
+
+	mpz_init2(aux, MPZ_LIMIT);
+	mpz_init2(dvalue, MPZ_LIMIT);
+	mpz_init2(accum, MPZ_LIMIT);
+
+	mpz_set(dvalue, (*evals)[i].x);
+	
+	int index = 0;
+	if (i == 0)
+		index = 1;
+	mpz_sub(accum, dvalue, (*evals)[index].x);
+	int j;
+	for (j = index + 1; j<auxlen; j++) {
+		if (j == i)
+			continue;
+		mpz_sub(aux, dvalue, (*evals)[j].x);
+		mpz_mul(accum, accum, aux);
 	}
+	mpz_set(*res, accum);
+}
+
+void create_basis_polynomial(
+	mpz_t*** aux, struct SHARE_ **evals, int i, int auxlen) {
+	
+	int j;
+	mpz_t* temp;
+	int index = 0;
+	if (i == 0)
+		index = 1;
+	
+	mpz_t one;
+	mpz_t den;
+	mpz_init2(one, MPZ_LIMIT);
+	mpz_init2(den, MPZ_LIMIT);
+
+	mpz_set_ui(one, 1);
+	create_x0_minus_x1_polynomial(&((*aux)[i]), one, (*evals)[index].x);
+	int grade_accumulated = 1;
+	for (j = index + 1; j < auxlen; j++) {
+		if (i==j)
+			continue;
+		temp = malloc(2 * sizeof(mpz_t));
+		init_polynomial(&temp, 2);
+		create_x0_minus_x1_polynomial(&temp, one, (*evals)[j].x);
+		
+		mult_polynomials(
+			&((*aux)[i]), (*aux)[i], temp, grade_accumulated, 1);
+		grade_accumulated++;
+		clear_polynomial(&temp, 2);
+	}
+	calculate_denominator(evals, i, auxlen, &den);
+	/*mpz_out_str(stdout, 10, den);
+	puts("");*/
+	
+	for (j=0; j < auxlen; j++) 
+		mpz_cdiv_q((*aux)[i][j], ((*aux)[i][j]), den);
+}
+
+void multiply_polynomial_by_mpz(mpz_t **poly, mpz_t n, int length) {
+	int i;
+	for (i=0; i<length; i++)
+		mpz_mul((*poly)[i], (*poly)[i], n);
 }
 
 /**
@@ -385,141 +390,72 @@ void div_polynomials_by_cte(
  * @param length: the number of evaluations
  */
 void lagrange_basis(
-	struct SHARE_ **evaluations, mpz_t ***poly, int length){
+	struct SHARE_ **evals, mpz_t ***aux, int length){
 	
-	int i, j;
-	//case if the length is 2
-
-	//where basis-polynomials will be allocated
-	//mpz_t **aux[length][2];
-	mpz_t **aux = malloc(length * sizeof(mpz_t*));
-	for(i = 0; i < length; i++){
-		aux[i] = malloc(2 * sizeof(mpz_t));
-		for(j = 0; j < 2; j++){
-			mpz_init2(aux[i][j], MPZ_LIMIT);
-		}
-	}
-
-	create_eval_polynomials(evaluations, &aux, length);
-
-	for(i = 0; i < length; i++){
-		right_position_poly(&aux, length);
-		mult_polyinomails(&aux, length, poly, i);
-	}
-
-	/*printf("%s", "[");
-	mpz_out_str(stdout, 10, (*poly)[0][0]);
-	printf("%s", ", ");
-	mpz_out_str(stdout, 10, (*poly)[0][1]);
-	printf("%s\n", "]");
-	printf("%s", "[");
-	mpz_out_str(stdout, 10, (*poly)[1][0]);
-	printf("%s", ", ");
-	mpz_out_str(stdout, 10, (*poly)[1][1]);
-	printf("%s\n", "]");
-	printf("%s", "[");
-	mpz_out_str(stdout, 10, (*poly)[2][0]);
-	printf("%s", ", ");
-	mpz_out_str(stdout, 10, (*poly)[2][1]);
-	printf("%s\n", "]");*/
-
-	for(i = 0; i < length; i++){
-		div_polynomials_by_cte(poly, evaluations, i, length);
-		right_position_points(evaluations, length);
-	}
-}
-
-/**
- * It adds all the common terms of the basis polynomials.
- * Finishing the lagrange_reconstruction.
- */
-void lagrange_add(mpz_t ***poly, mpz_t **poly_f, int length){
-	int i,j;
-	for (i = 0; i < length; i++){
-		mpz_add((*poly_f)[i], (*poly)[0][i], (*poly)[1][i]);
-	}
-	for (i = 0; i < length; i++){
-		for (j = 2; j < length; j++){
-			mpz_add((*poly_f)[i], (*poly_f)[i], (*poly)[j][i]);
-		}
-	}
-}
-
-/**
- * Given all the evaluations and the basis polynomials, it makes the product
- * of the basis polynomial with the correspondet y component.
- * @param evaluations: an array of struct's SHARE_ 
- * @param poly: the array where the polynomial basis will be save
- * @param length: the number of evaluations
- */
-void lagrange_reconstruction(
-	struct SHARE_ **evaluations, mpz_t ***poly, int length, mpz_t **poly_f){
-
-	int i,j;
-	for (i = 0; i < length; i++){
-		for (j = 0; j < length; j++){
-			mpz_mul((*poly)[i][j], (*evaluations)[i].y, (*poly)[i][j]);
-		}
-	}
-
-	lagrange_add(poly, poly_f, length);
-}
-
-/**
- * Frees a mxn matrix of mpz_t
- */
-void free_matrix(mpz_t*** matrix, int m, int n) {
 	int i;
-	for (i=0; i<m; i++)
-		clear_polynomial(&((*matrix)[i]), n);
-	free(*matrix);
+	for (i=0; i < length; i++) {
+		create_basis_polynomial(aux, evals, i, length);
+		//print_polynomial((&((*aux)[i])), length);
+	}	
+	//print polynomial
+	//free_matrix(aux, length, length - 1);
 }
+
+void sum_polynomials(mpz_t **poly, mpz_t** a, mpz_t** b, int size) {
+	int i;
+	for (i=0; i<size; i++)
+		mpz_add((*poly)[i], (*a)[i], (*b)[i]);
+}
+
+void rebuild_polynomial(
+	mpz_t **polynomial, mpz_t ***aux,
+	struct SHARE_ **evals, int length) {
+	
+	int i;
+	for (i=0; i<length; i++) {
+		multiply_polynomial_by_mpz(&((*aux)[i]), (*evals)[i].y, length);
+	}
+	copy_polynomial(polynomial, &((*aux)[0]), length);
+	for (i=1; i<length; i++)
+		sum_polynomials(polynomial, polynomial, &((*aux)[i]), length);
+}
+
 
 int main(int argc, char *args[]) {
 
 	FILE *read = fopen(args[1], "r");
 	int length = define_length(read);
 	//if length = 1, i.e, there is only 1 point, an error ocurrs
-	struct SHARE_* evaluations = malloc(sizeof(struct SHARE_) * length-1);
-	reader(read, &evaluations);
+	struct SHARE_* evals = malloc(sizeof(struct SHARE_) * length-1);
+	reader(read, &evals);
 	int i;
-	/*for (i=0; i<length; i++) {
-		printf("%s", "(");
-		mpz_out_str(stdout, 10, evaluations[i].x);
-		printf("%s", ", ");
-		mpz_out_str(stdout, 10, evaluations[i].y);
-		printf("%s\n", ")");
-	}*/
+	int j;
+	mpz_t * poly = malloc(length * sizeof(mpz_t));
+	init_polynomial(&poly, length);	
 	
-	// mpz_t poly[length][length];
-	mpz_t ** poly = malloc(length * sizeof(mpz_t*));
-	//int i;
-	for (i=0; i<length; i++) {
-		poly[i] = malloc(length * sizeof(mpz_t));
-		int j;
-		for (j=0; j<length; j++)
-			mpz_init2(poly[i][j], MPZ_LIMIT);
-	}
-	mpz_t * reconstructed_poly = malloc(length * sizeof(mpz_t));
+	mpz_t **aux = malloc(length * sizeof(mpz_t*));
+	fill_aux_polynomial(&aux, length);
+	
+	lagrange_basis(&evals, &aux, length);
+	rebuild_polynomial(&poly, &aux, &evals, length);
+	/*mpz_t * reconstructed_poly = malloc(length * sizeof(mpz_t));
 	for (i = 0; i < length; i++){
 		mpz_init2(reconstructed_poly[i], MPZ_LIMIT);
 	}
 	lagrange_basis(&evaluations, &poly, length);
 	lagrange_reconstruction(&evaluations, &poly, length, &reconstructed_poly);
+	*/
+	
+	puts("polynomial:");
+	print_polynomial(&poly, length);
 
-	/*printf("%s", "[");
-	for (i = 0; i < length; i++){
-		mpz_out_str(stdout, 10, (*poly)[i]);
-		printf("%s", ", ");
-	}
-	printf("%s\n", "]");*/
-
-	mpz_t secret;
+	/*mpz_t secret;
 	mpz_init(secret);
-	mpz_set_ui(secret, 2);
+	mpz_set_ui(secret, 2);*/
 
-	int nshares = 5;
+	/*int nshares = 5;
 	int min = 4;
+	*/
 	//mpz_t* polynomial = malloc((min - 1) * sizeof(mpz_t));
 		
 	//build_polynomial(&polynomial, min - 1, secret);
@@ -527,7 +463,8 @@ int main(int argc, char *args[]) {
 	// mpz_out_str(stdout, 10, secret);
 	//create_shares(nshares, min, secret);
 	//clear_polynomial(&polynomial, min - 1);
-	free_matrix(&poly, length, length);
-	mpz_clear(secret);
+	clear_polynomial(&poly, length);
+	free_matrix(&aux, length, length);
+	// mpz_clear(secret);
 	return 0;
 }
