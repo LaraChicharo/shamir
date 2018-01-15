@@ -247,9 +247,9 @@ void create_eval_polynomials(struct SHARE_ **evaluations, mpz_t ***aux, int leng
 
 /**
  * It reallocates the positions of the array in order to do the correct 
- * polynomial products for the lagrange_basis
+ * polynomial products for the lagrange_basis.
  */
-void right_position(mpz_t ***aux, int length){
+void right_position_poly(mpz_t ***aux, int length){
 	int i,j;
 	mpz_t temp[2];
 	mpz_init2(temp[0], MPZ_LIMIT);
@@ -266,6 +266,22 @@ void right_position(mpz_t ***aux, int length){
 }
 
 /**
+ * It reallocates the positions of the points given by the user, in order
+ * to make the correct quotient for the basis polynomials.
+ */
+void right_position_points(struct SHARE_ **evaluations, int length){
+	int i;
+	struct SHARE_ temp;
+	mpz_init2(temp.x, MPZ_LIMIT);
+	mpz_init2(temp.y, MPZ_LIMIT);
+	mpz_set(temp.x, (*evaluations)[0].x);
+	mpz_set(temp.y, (*evaluations)[0].y);
+	for (i = 0; i < length; i++){
+		
+	}
+}
+
+/**
  * It makes the product of two polynomails and then save the result in a
  * matrix (poly) in the correspondent position. In order to assist the
  * mult_polyinomails.
@@ -274,9 +290,13 @@ void mult_assistant(mpz_t **op1, mpz_t **op2, mpz_t ***poly, int position){
 	int size1 = sizeof(*op1)/sizeof((*op1)[0]);
 	int size2 = sizeof(*op2)/sizeof((*op2)[0]);
 	int i,j;
+	mpz_t aux;
+	mpz_init2(aux, MPZ_LIMIT);
 	for (i = 0; i < size1; i++){
 		for (j = 0; j < size2; j++){
 			//(*poly)[position][i+j] += (*op1)[i] + (*op2)[j];
+			mpz_add(aux, (*op1)[i], (*op2)[j]);
+			mpz_add((*poly)[position][i+j], (*poly)[position][i+j], aux);
 		}
 	}
 }
@@ -297,6 +317,46 @@ void mult_polyinomails(mpz_t ***aux, int length, mpz_t ***poly, int position){
 }
 
 /**
+ * It calculates the correspondent quotient to his polynomial .
+ */
+void div_assistant(struct SHARE_ **evaluations, int length, mpz_t quotient){
+
+	int i;
+	mpz_init2(quotient, MPZ_LIMIT);
+	mpz_set(quotient, (*evaluations)[0].x);
+	mpz_t aux[length-1];
+	for(i = 0; i < length-1; i++){
+		mpz_init2(aux[i], MPZ_LIMIT);
+	}
+	for(i = 1; i < length; i++){
+		mpz_sub(aux[i-1], quotient, (*evaluations)[i].x);
+	}
+	mpz_mul(quotient, aux[0], aux[1]);
+	for (i = 2; i < length-1; i++){
+		mpz_mul(quotient, quotient, aux[i]);
+	}
+}
+
+/**
+ * It divides all of the polynomials needed by the correspondent quotient
+ * to finish the lagrange_basis. It saves the resulting polynomial in the matrix
+ * poly.
+ */
+void div_polynomials_by_cte(
+	mpz_t ***poly, struct SHARE_ **evaluations, int position, int length){
+
+	mpz_t quotient;
+	div_assistant(evaluations, length, quotient);
+
+	int i,j;
+	for(i = 0; i < length; i++){
+		for(i = 0; i < length; i++){
+			
+		}
+	}
+}
+
+/**
  * Given all the evaluations, it generates the basis polynomials for the 
  * lagrange reconstruction.
  * @param evaluations: an array of struct's SHARE_ 
@@ -305,15 +365,10 @@ void mult_polyinomails(mpz_t ***aux, int length, mpz_t ***poly, int position){
  */
 void lagrange_basis(
 	struct SHARE_ **evaluations, mpz_t ***poly, int length){
+	
 	int i, j;
 
 	//case if the length is 2
-
-	/*for(i = 0; i < length; i++){
-		for(j = 0; j < length; j++){
-			mpz_set_ui((*poly)[i][j], 0);
-		}
-	}*/
 
 	//where basis-polynomials will be allocated
 	//mpz_t **aux[length][2];
@@ -329,9 +384,50 @@ void lagrange_basis(
 	create_eval_polynomials(evaluations, &aux, length);
 	
 	for(i = 0; i < length; i++){
-		right_position(&aux, length);
+		right_position_poly(&aux, length);
 		mult_polyinomails(&aux, length, poly, i);
 	}
+
+	for(i = 0; i < length; i++){
+		div_polynomials_by_cte(poly, evaluations, i, length);
+		right_position_points(evaluations, length);
+	}
+}
+
+/**
+ * It adds all the common terms of the basis polynomials.
+ * Finishing the lagrange_reconstruction.
+ */
+void lagrange_add(mpz_t ***poly, mpz_t **poly_f, int length){
+	int i,j;
+	for (i = 0; i < length; i++){
+		mpz_add((*poly_f)[i], (*poly)[0][i], (*poly)[1][i]);
+	}
+	for (i = 0; i < length; i++){
+		for (j = 2; j < length; j++){
+			mpz_add((*poly_f)[i], (*poly_f)[i], (*poly)[j][i]);
+		}
+	}
+}
+
+/**
+ * Given all the evaluations and the basis polynomials, it makes the product
+ * of the basis polynomial with the correspondet y component.
+ * @param evaluations: an array of struct's SHARE_ 
+ * @param poly: the array where the polynomial basis will be save
+ * @param length: the number of evaluations
+ */
+void lagrange_reconstruction(
+	struct SHARE_ **evaluations, mpz_t ***poly, int length, mpz_t **poly_f){
+
+	int i,j;
+	for (i = 0; i < length; i++){
+		for (j = 0; j < length; j++){
+			mpz_mul((*poly)[i][j], (*evaluations)[i].y, (*poly)[i][j]);
+		}
+	}
+
+	lagrange_add(poly, poly_f, length);
 }
 
 /**
@@ -360,7 +456,19 @@ int main(int argc, char *args[]) {
 		for (j=0; j<length; j++)
 			mpz_init2(poly[i][j], MPZ_LIMIT);
 	}
+	mpz_t * reconstructed_poly = malloc(length * sizeof(mpz_t));
+	for (i = 0; i < length; i++){
+		mpz_init2(reconstructed_poly[i], MPZ_LIMIT);
+	}
 	lagrange_basis(&evaluations, &poly, length);
+	lagrange_reconstruction(&evaluations, &poly, length, &reconstructed_poly);
+
+	printf("%s", "[");
+	for (i = 0; i < length; i++){
+		mpz_out_str(stdout, 10, (*poly)[i]);
+		printf("%s", ", ");
+	}
+	printf("%s\n", "]");
 
 	mpz_t secret;
 	mpz_init(secret);
