@@ -238,8 +238,8 @@ void create_eval_polynomials(struct SHARE_ **evaluations, mpz_t ***aux, int leng
 	  the point given*/
 	int i;
 	for(i = 0; i < length; i++){
-		mpz_set((**aux)[i][0], (*evaluations)[i].x);
-		mpz_set_ui((**aux)[i][1], 1);
+		mpz_set((*aux)[i][0], (*evaluations)[i].x);
+		mpz_set_ui((*aux)[i][1], 1);
 	}
 }
 
@@ -254,15 +254,15 @@ void right_position(mpz_t ***aux, int length){
 	mpz_t temp[2];
 	mpz_init2(temp[0], MPZ_LIMIT);
 	mpz_init2(temp[1], MPZ_LIMIT);
-	mpz_set(temp[0], (**aux)[0][0]);
-	mpz_set(temp[1], (**aux)[0][1]);
+	mpz_set(temp[0], (*aux)[0][0]);
+	mpz_set(temp[1], (*aux)[0][1]);
 	for(i = 0; i < length-1; i++){
 		for(j = 0; j < 2; j++){
-			mpz_set((**aux)[i][j], (**aux)[i+1][j]);
+			mpz_set((*aux)[i][j], (*aux)[i+1][j]);
 		}
 	}
-	mpz_set((**aux)[length-1][0], temp[0]);
-	mpz_set((**aux)[length-1][1], temp[1]);
+	mpz_set((*aux)[length-1][0], temp[0]);
+	mpz_set((*aux)[length-1][1], temp[1]);
 }
 
 /**
@@ -276,7 +276,7 @@ void mult_assistant(mpz_t **op1, mpz_t **op2, mpz_t ***poly, int position){
 	int i,j;
 	for (i = 0; i < size1; i++){
 		for (j = 0; j < size2; j++){
-			(**poly)[position][i+j] += (*op1)[i] + (*op2)[j];
+			//(*poly)[position][i+j] += (*op1)[i] + (*op2)[j];
 		}
 	}
 }
@@ -288,10 +288,10 @@ void mult_assistant(mpz_t **op1, mpz_t **op2, mpz_t ***poly, int position){
  */
 void mult_polyinomails(mpz_t ***aux, int length, mpz_t ***poly, int position){
 	int i;
-	mult_assistant(&aux[0], &aux[1], poly, position);
+	mult_assistant(&((*aux)[0]), &((*aux)[1]), poly, position);
 	if(length != 3){
 		for(i = 2; i < length; i++){
-			mult_assistant(&aux[2], &poly[position], poly, position)
+			mult_assistant(&((*aux)[2]), &((*poly)[position]), poly, position);
 		}
 	}
 }
@@ -309,27 +309,27 @@ void lagrange_basis(
 
 	//case if the length is 2
 
-	for(i = 0; i < length; i++){
+	/*for(i = 0; i < length; i++){
 		for(j = 0; j < length; j++){
-			mpz_init2((*poly)[i][j], MPZ_LIMIT);
 			mpz_set_ui((*poly)[i][j], 0);
 		}
-	}
+	}*/
 
 	//where basis-polynomials will be allocated
-	mpz_t aux[length][2];
+	//mpz_t **aux[length][2];
+	mpz_t **aux = malloc(length * sizeof(mpz_t*));
 	for(i = 0; i < length; i++){
+		aux[i] = malloc(2 * sizeof(mpz_t));
 		for(j = 0; j < 2; j++){
 			mpz_init2(aux[i][j], MPZ_LIMIT);
-			mpz_set_ui(aux[i][j], 0);
 		}
 	}
 
-	create_eval_polynomials(&evaluations, &aux, length);
+	create_eval_polynomials(evaluations, &aux, length);
 	
 	for(i = 0; i < length; i++){
 		right_position(&aux, length);
-		mult_polyinomails(&aux, length, &poly, i);
+		mult_polyinomails(&aux, length, poly, i);
 	}
 }
 
@@ -345,7 +345,9 @@ int main(int argc, char *args[]) {
 	int i;
 	for (i=0; i<length; i++) {
 		poly[i] = malloc(length * sizeof(mpz_t));
-		mpz_init2(poly[i][j], MPZ_LIMIT);
+		int j;
+		for (j=0; j<length; j++)
+			mpz_init2(poly[i][j], MPZ_LIMIT);
 	}
 	lagrange_basis(&evaluations, &poly, length);
 
