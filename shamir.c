@@ -323,6 +323,7 @@ void lagrange_basis(
 		for(j = 0; j < 2; j++){
 			mpz_init2(aux[i][j], MPZ_LIMIT);
 		}
+	
 	}
 
 	create_eval_polynomials(evaluations, &aux, length);
@@ -331,6 +332,16 @@ void lagrange_basis(
 		right_position(&aux, length);
 		mult_polyinomails(&aux, length, poly, i);
 	}
+}
+
+/**
+ * Frees a mxn matrix of mpz_t
+ */
+void free_matrix(mpz_t*** matrix, int m, int n) {
+	int i;
+	for (i=0; i<m; i++)
+		clear_polynomial(&((*matrix)[i]), n);
+	free(*matrix);
 }
 
 int main(int argc, char *args[]) {
@@ -364,7 +375,7 @@ int main(int argc, char *args[]) {
 	// mpz_out_str(stdout, 10, secret);
 	//create_shares(nshares, min, secret);
 	//clear_polynomial(&polynomial, min - 1);
-
+	free_matrix(&poly, length, length);
 	mpz_clear(secret);
 	return 0;
 }
