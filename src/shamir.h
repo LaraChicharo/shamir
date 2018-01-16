@@ -1,3 +1,5 @@
+#include <gmp.h>
+
 #define URANDOM "/dev/urandom"
 #define MPZ_LIMIT 256
 //#define _GNU_SOURCE

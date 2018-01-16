@@ -3,14 +3,23 @@
 #include "cipher.h"
 
 
-int encrypt(
+/**
+ * Encrypts a file.
+ * @param plainfp pointer to file to be encrypted.
+ * @param encrfp ptr to file where the encrypted data will be stored.
+ * @param key password to be used encrypt.
+ * @param keysize size of key.
+ * @returns status code. 0 for OK.
+ */
+int encrypt_(
 	FILE **plainfp, FILE **encrfp, char* key, int keysize) {
 	
 	MCRYPT td = mcrypt_module_open(
 		ALGORITHM, NULL, MODE, NULL);
 	// size in bytes
-	// int max_key_size = mcrypt_enc_get_key_size(td);
-	// int iv_size = mcrypt_enc_get_iv_size(td);  // size in bytes
+	int max_key_size = mcrypt_enc_get_key_size(td);
+	if (keysize > max_key_size)
+		return 1;
 
 	mcrypt_generic_init(td, key, keysize, IV);
 	char block_buffer;
@@ -24,11 +33,23 @@ int encrypt(
 	return 0;
 }
 
-int decrypt(
+/**
+ * Decrypts a file.
+ * @param encrfp ptr to file where the encrypted data is be stored.
+ * @param decrfp ptr to file where the decrypted data will be saved.
+ * @param key password to be used to decrypt.
+ * @param keysize size of key.
+ */
+int decrypt_(
 	FILE **encrfp, FILE **decrfp, char *key, int keysize) {
 	
 	MCRYPT td = mcrypt_module_open(
 		ALGORITHM, NULL, MODE, NULL);
+	// size in bytes
+	int max_key_size = mcrypt_enc_get_key_size(td);
+	if (keysize > max_key_size)
+		return 1;
+	
 	mcrypt_generic_init(td, key, keysize, IV);
 	char block_buffer;
 	while (fread(&block_buffer, 1, 1, *encrfp) == 1) {
