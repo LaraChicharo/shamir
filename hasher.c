@@ -2,6 +2,7 @@
 #include <mhash.h>
 #include <string.h>
 #include <math.h>
+#include "hasher.h"
 
 
 /**
@@ -45,14 +46,14 @@ void hash_string_to_int(char **str, char **buff) {
 	free(tempbuff);
 }
 
-int main(int argc, char** argv) {
+/*int main(int argc, char** argv) {
 	int str_len = strlen(argv[1]);
 	char *buff = malloc((sizeof(char) * 32 * 8) + 1);
 	hash_string_to_int(&argv[1], &buff);
 	/*string_as_binary(
 		&argv[1], str_len + 1, &buff);*/
-	printf("binary repr: %s\n", buff);
+	/*printf("binary repr: %s\n", buff);
 	free(buff);
 	return 0;
-}
+}*/
 

@@ -2,23 +2,11 @@
 #include <stdlib.h>
 #include <assert.h>
 //I need include from here
-#include <gmp.h>
+#include <x86_64-linux-gnu/gmp.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <math.h>
-
-#define URANDOM "/dev/urandom"
-#define MPZ_LIMIT 256
-
-/**
- * A structure that retains two values. Designed to be used as a
- * coordinate point
- */
-struct SHARE_ {
-	mpz_t x;
-	mpz_t y;
-};
-
+#include "shamir.h"
 
 /**
  * Converts 8 bytes into an unsigned long long
@@ -108,6 +96,7 @@ void clear_polynomial(mpz_t** poly, int nterms) {
  */
 void print_polynomial(mpz_t** poly, int nterms) {
 	int i;
+	printf("\n");
 	for (i=0; i<nterms; i++) {
 		mpz_out_str(stdout, 10, (*poly)[i]);
 		printf("%s", " ");
@@ -147,15 +136,16 @@ void eval_polynomial(
 /**
  * Prints an array of SHARES.
  */
-void print_shares(struct SHARE_** shares, int n) {
+void print_shares(struct SHARE_** shares, int n, FILE* file) {
 	int i;
 	for (i=0; i<n; i++) {
-		printf("%s", "(");
-		mpz_out_str(stdout, 10, (*shares)[i].x);
-		printf("%s", ", ");
-		mpz_out_str(stdout, 10, (*shares)[i].y);
-		printf("%s\n", ")");
+		fputs("(", file);
+		mpz_out_str(file, 10, (*shares)[i].x);
+		fputs(", ", file);
+		mpz_out_str(file, 10, (*shares)[i].y);
+		fputs(")\n", file);
 	}
+	fclose(file);
 }
 
 void free_shares(struct SHARE_** shares, int n) {
@@ -167,7 +157,7 @@ void free_shares(struct SHARE_** shares, int n) {
 	free(*shares);
 }
 
-void create_shares(int nshares, int min, mpz_t secret) {
+void create_shares(int nshares, int min, mpz_t secret, FILE* file) {
 	if (nshares < min) {
 		fprintf(
 			stderr,
@@ -188,7 +178,7 @@ void create_shares(int nshares, int min, mpz_t secret) {
 		mpz_set_ui(shares[i].x, i);
 		eval_polynomial(i, &polynomial, nterms, &shares[i].y);
 	}
-	print_shares(&shares, nshares);
+	print_shares(&shares, nshares, file);
 
 	clear_polynomial(&polynomial, nterms);
 	free_shares(&shares, nshares);
@@ -218,15 +208,15 @@ int define_length(FILE *read){
 void reader(FILE *read, struct SHARE_ **evals){
 	int i = 0;
 	char* l1 = malloc(201 * sizeof(char));
-	size_t *n;
+	size_t n=201;
 	rewind(read);
 	int read_int;
-	while ((read_int = getline(&l1, n, read)) != -1) {
+	while ((read_int = getline(&l1, &n, read)) != -1) {
 		mpz_init2((*evals)[i].x, MPZ_LIMIT);
 		mpz_init2((*evals)[i].y, MPZ_LIMIT);
 		char n1[100];
 		char n2[100];
-		sscanf(l1, "%s %s", &n1, &n2);
+		sscanf(l1, "%s %s", n1, n2);
 		mpz_set_str((*evals)[i].x, n1, 10);
 		mpz_set_str((*evals)[i].y, n2, 10);
 		i++;
@@ -421,7 +411,7 @@ void rebuild_polynomial(
 }
 
 
-int main(int argc, char *args[]) {
+/*int main(int argc, char *args[]) {
 
 	FILE *read = fopen(args[1], "r");
 	int length = define_length(read);
@@ -446,7 +436,7 @@ int main(int argc, char *args[]) {
 	lagrange_reconstruction(&evaluations, &poly, length, &reconstructed_poly);
 	*/
 	
-	puts("polynomial:");
+	/*puts("polynomial:");
 	print_polynomial(&poly, length);
 
 	/*mpz_t secret;
@@ -463,8 +453,9 @@ int main(int argc, char *args[]) {
 	// mpz_out_str(stdout, 10, secret);
 	//create_shares(nshares, min, secret);
 	//clear_polynomial(&polynomial, min - 1);
-	clear_polynomial(&poly, length);
+	/*clear_polynomial(&poly, length);
 	free_matrix(&aux, length, length);
+	fclose(read);
 	// mpz_clear(secret);
 	return 0;
-}
+}*/
