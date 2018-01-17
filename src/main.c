@@ -143,7 +143,7 @@ int get_namesize_decrypted_file(char* encname) {
  * @param original name pointer to str to store the name in it.
  */
 void get_name_decrypted_file(char* encname, char** original_name) {
-	int i = 0;
+	int i = 0;	
 	while (i < get_namesize_decrypted_file(encname))
 		(*original_name)[i] = encname[i++];
 }
@@ -209,10 +209,12 @@ int main(int argc, char** argv) {
 		fclose(encrfp);
 	} else if (strcmp(argv[1], "d") == 0) {
 		validate_decipher_option(argv);
-
 		FILE *read = fopen(argv[2], "r");
+
 		int length = define_length(read);
-		//if length = 1, i.e, there is only 1 point, an error ocurrs
+		if(length < 3)
+			error_message(1, "Very few evaluated points. Minimum 3 points needed");
+
 		struct SHARE_* evals = malloc(sizeof(struct SHARE_) * length - 1);
 		reader(read, &evals);
 		int i,j;
@@ -227,19 +229,17 @@ int main(int argc, char** argv) {
 		rebuild_polynomial(&poly, &aux, &evals, length);
 
 		char *pass = (char*)malloc(MAX_PASS_LEN * sizeof(char));
-		mpz_out_str(stdout, 10, poly[0]);
+		//mpz_out_str(stdout, 10, poly[0]);
 		mpz_get_str(pass, 10, poly[0]);
-		puts("");
+		//puts("");
 	
-
-
 		char* original_name = malloc(
 				sizeof(char) * get_namesize_decrypted_file(argv[3]));
 		get_name_decrypted_file(argv[3], &original_name);
-		// printf("original_name: %s\n", original_name);
+		original_name[strlen(original_name)] = '\0';
 
 		FILE *encrfp = fopen(argv[3], "r");
-		FILE *decrfp = fopen("decrypted", "w");
+		FILE *decrfp = fopen(original_name, "w");
 
 		decrypt_(&encrfp, &decrfp, pass, strlen(pass));
 

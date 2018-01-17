@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-//I need include from here
 #include <fcntl.h>
 #include <errno.h>
 #include <math.h>
@@ -169,6 +168,9 @@ void print_shares(struct SHARE_** shares, int n, FILE* file) {
 	fclose(file);
 }
 
+/**
+ * It creates the ordered pairs, (x,f(x)), requested. 
+ */
 void create_shares(int nshares, int min, mpz_t secret, FILE* file) {
 	if (nshares < min) {
 		fprintf(
@@ -251,18 +253,27 @@ void create_eval_polynomials(struct SHARE_ **evaluations, mpz_t ***aux, int leng
 	}
 }
 
+/**
+ * It iniciate the array, due to the requierment of the library
+ */
 void init_polynomial(mpz_t** poly, int size) {
 	int i;
 	for (i=0; i < size; i++)
 		mpz_init2((*poly)[i], MPZ_LIMIT);
 }
 
+/**
+ *	It sets the polynomial 'a' to the value of 'b'
+ */
 void copy_polynomial(mpz_t **a, mpz_t **b, int size) {
 	int i;
 	for (i=0; i < size; i++)
 		mpz_set((*a)[i], (*b)[i]);
 }
 
+/**
+ * It makes the product of two polynomials
+ */
 void mult_polynomials(
 		mpz_t **poly, mpz_t *a, mpz_t *b, int al, int bl){
 
@@ -293,6 +304,9 @@ void free_matrix(mpz_t*** matrix, int m, int n) {
 	free(*matrix);
 }
 
+/**
+ * It iniciate and set the memory allocation to a polynomial
+ */
 void fill_aux_polynomial(mpz_t*** aux, int length) {
 	int i, j;
 	for(i = 0; i < length; i++){
@@ -303,6 +317,10 @@ void fill_aux_polynomial(mpz_t*** aux, int length) {
 	}
 }
 
+/**
+ * It generates a polynomial given two points. So it will be a 
+ * degree 1 polynomial
+ */
 void create_x0_minus_x1_polynomial(mpz_t** poly, mpz_t x0, mpz_t x1) {
 	mpz_t minus_x1;
 	mpz_init2(minus_x1, MPZ_LIMIT);
@@ -313,7 +331,9 @@ void create_x0_minus_x1_polynomial(mpz_t** poly, mpz_t x0, mpz_t x1) {
 	mpz_set((*poly)[1], x0);
 }
 
-
+/**
+ * It calculates the quotient correspondent to the basis polynomial
+ */
 void calculate_denominator(
 		struct SHARE_ **evals, int i, int auxlen, mpz_t *res) {
 
@@ -341,6 +361,9 @@ void calculate_denominator(
 	mpz_set(*res, accum);
 }
 
+/**
+ * It creates the basis polynomials for the lagrange reconstruction.
+ */
 void create_basis_polynomial(
 		mpz_t*** aux, struct SHARE_ **evals, int i, int auxlen) {
 
@@ -371,8 +394,6 @@ void create_basis_polynomial(
 		clear_polynomial(&temp, 2);
 	}
 	calculate_denominator(evals, i, auxlen, &den);
-	/*mpz_out_str(stdout, 10, den);
-	  puts("");*/
 
 	for (j=0; j < auxlen; j++) 
 		mpz_cdiv_q((*aux)[i][j], ((*aux)[i][j]), den);
@@ -397,18 +418,22 @@ void lagrange_basis(
 	int i;
 	for (i=0; i < length; i++) {
 		create_basis_polynomial(aux, evals, i, length);
-		//print_polynomial((&((*aux)[i])), length);
 	}	
-	//print polynomial
-	//free_matrix(aux, length, length - 1);
 }
 
+/**
+ * It adds all the common terms of the basis polynomial. So basically,
+ * it's a simplification of terms.
+ */
 void sum_polynomials(mpz_t **poly, mpz_t** a, mpz_t** b, int size) {
 	int i;
 	for (i=0; i<size; i++)
 		mpz_add((*poly)[i], (*a)[i], (*b)[i]);
 }
-
+/**
+ * It rebuilds the polynomial, with the secret, using the basis polynomials, 
+ * already done.
+ */
 void rebuild_polynomial(
 		mpz_t **polynomial, mpz_t ***aux,
 		struct SHARE_ **evals, int length) {
@@ -421,53 +446,3 @@ void rebuild_polynomial(
 	for (i=1; i<length; i++)
 		sum_polynomials(polynomial, polynomial, &((*aux)[i]), length);
 }
-
-
-/*int main(int argc, char *args[]) {
-
-  FILE *read = fopen(args[1], "r");
-  int length = define_length(read);
-//if length = 1, i.e, there is only 1 point, an error ocurrs
-struct SHARE_* evals = malloc(sizeof(struct SHARE_) * length-1);
-reader(read, &evals);
-int i;
-int j;
-mpz_t * poly = malloc(length * sizeof(mpz_t));
-init_polynomial(&poly, length);	
-
-mpz_t **aux = malloc(length * sizeof(mpz_t*));
-fill_aux_polynomial(&aux, length);
-
-lagrange_basis(&evals, &aux, length);
-rebuild_polynomial(&poly, &aux, &evals, length);
-/*mpz_t * reconstructed_poly = malloc(length * sizeof(mpz_t));
-for (i = 0; i < length; i++){
-mpz_init2(reconstructed_poly[i], MPZ_LIMIT);
-}
-lagrange_basis(&evaluations, &poly, length);
-lagrange_reconstruction(&evaluations, &poly, length, &reconstructed_poly);
-*/
-
-/*puts("polynomial:");
-  print_polynomial(&poly, length);
-
-/*mpz_t secret;
-mpz_init(secret);
-mpz_set_ui(secret, 2);*/
-
-/*int nshares = 5;
-  int min = 4;
-  */
-//mpz_t* polynomial = malloc((min - 1) * sizeof(mpz_t));
-
-//build_polynomial(&polynomial, min - 1, secret);
-//print_polynomial(&polynomial, min - 1);
-// mpz_out_str(stdout, 10, secret);
-//create_shares(nshares, min, secret);
-//clear_polynomial(&polynomial, min - 1);
-/*clear_polynomial(&poly, length);
-  free_matrix(&aux, length, length);
-  fclose(read);
-// mpz_clear(secret);
-return 0;
-}*/

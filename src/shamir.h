@@ -1,4 +1,4 @@
-#include <gmp.h>
+#include </usr/include/x86_64-linux-gnu/gmp.h>
 
 #define URANDOM "/dev/urandom"
 #define MPZ_LIMIT 256
