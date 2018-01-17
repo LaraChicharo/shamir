@@ -195,12 +195,10 @@ int main(int argc, char** argv) {
 		
 		char* real_pass = malloc(MAX_PASS_LEN * sizeof(char));
 		mpz_get_str(real_pass, 10, secret);
-		printf("real_pass: %s\n", real_pass);
 
 		if (encrypt_(&plainfp, &encrfp, real_pass, strlen(real_pass)))
 			fprintf(stderr, "%s\n", "pass too long");
 
-		printf("Your pass: %s\n", pass);
 		free(pass);
 		free(real_pass);
 		free(encname);
@@ -212,9 +210,9 @@ int main(int argc, char** argv) {
 		FILE *read = fopen(argv[2], "r");
 
 		int length = define_length(read);
-		if(length < 3)
+		/*if(length < 3)
 			error_message(1, "Very few evaluated points. Minimum 3 points needed");
-
+*/
 		struct SHARE_* evals = malloc(sizeof(struct SHARE_) * length - 1);
 		reader(read, &evals);
 		int i,j;
@@ -229,9 +227,7 @@ int main(int argc, char** argv) {
 		rebuild_polynomial(&poly, &aux, &evals, length);
 
 		char *pass = (char*)malloc(MAX_PASS_LEN * sizeof(char));
-		//mpz_out_str(stdout, 10, poly[0]);
 		mpz_get_str(pass, 10, poly[0]);
-		//puts("");
 	
 		char* original_name = malloc(
 				sizeof(char) * get_namesize_decrypted_file(argv[3]));

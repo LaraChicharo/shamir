@@ -22,11 +22,8 @@ int encrypt_(
 	int max_key_size = mcrypt_enc_get_key_size(td);
 	char *real_key = malloc(max_key_size * sizeof(char));
 	
-	puts("before strncpy");		
 	strncpy(real_key, key, max_key_size - 1);
-	puts("after strncpy");
 	real_key[max_key_size - 2] = '\0'; 
-	puts("afeter null char");
 
 	mcrypt_generic_init(td, real_key, max_key_size - 1, IV);
 	char block_buffer;

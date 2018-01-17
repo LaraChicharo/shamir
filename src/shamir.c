@@ -179,7 +179,7 @@ void create_shares(int nshares, int min, mpz_t secret, FILE* file) {
 				"The number of shares cant be less than min.");
 		exit(EINVAL);  // Invalid argument
 	}
-	int nterms = min - 1;
+	int nterms = min;
 	mpz_t* polynomial = malloc(nterms * sizeof(mpz_t));
 	build_polynomial(&polynomial, nterms, secret);
 	//print_polynomial(&polynomial, nterms);
