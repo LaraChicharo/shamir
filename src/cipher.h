@@ -8,4 +8,4 @@
 int encrypt_(
 	FILE **plainfp, FILE **encrfp, char* key, int keysize);
 int decrypt_(
-	FILE **encrfp, FILE **decrfp, char *key, int keysize);
+	FILE **encrfp, FILE **decrfp, char* key, int keysize);

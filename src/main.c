@@ -179,7 +179,8 @@ int main(int argc, char** argv) {
 		get_password(&pass, &keysize);
 
 		char *buff = malloc((sizeof(char) * 32 * 8) + 1);
-		hash_string_to_int(&argv[1], &buff);
+		hash_string_to_int(&pass, &buff);
+		
 		mpz_t secret;
 		mpz_init2(secret, MPZ_LIMIT);
 		mpz_set_str(secret, buff, 2);
@@ -191,11 +192,17 @@ int main(int argc, char** argv) {
 				sizeof(char) * get_namesize_encrypted_file(argv[5]));
 		get_name_encrypted_file(argv[5], &encname);
 		FILE *encrfp = fopen(encname, "w");
+		
+		char* real_pass = malloc(MAX_PASS_LEN * sizeof(char));
+		mpz_get_str(real_pass, 10, secret);
+		printf("real_pass: %s\n", real_pass);
 
-		encrypt_(&plainfp, &encrfp, pass, keysize);
+		if (encrypt_(&plainfp, &encrfp, real_pass, strlen(real_pass)))
+			fprintf(stderr, "%s\n", "pass too long");
 
 		printf("Your pass: %s\n", pass);
 		free(pass);
+		free(real_pass);
 		free(encname);
 		fclose(plainfp);
 		mpz_clear(secret);
@@ -222,6 +229,7 @@ int main(int argc, char** argv) {
 		char *pass = (char*)malloc(MAX_PASS_LEN * sizeof(char));
 		mpz_out_str(stdout, 10, poly[0]);
 		mpz_get_str(pass, 10, poly[0]);
+		puts("");
 	
 
 
@@ -232,8 +240,6 @@ int main(int argc, char** argv) {
 
 		FILE *encrfp = fopen(argv[3], "r");
 		FILE *decrfp = fopen("decrypted", "w");
-
-		printf("pass:%s\n", pass);
 
 		decrypt_(&encrfp, &decrfp, pass, strlen(pass));
 

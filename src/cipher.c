@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <mcrypt.h>
 #include "cipher.h"
 
@@ -18,10 +20,15 @@ int encrypt_(
 		ALGORITHM, NULL, MODE, NULL);
 	// size in bytes
 	int max_key_size = mcrypt_enc_get_key_size(td);
-	if (keysize > max_key_size)
-		return 1;
+	char *real_key = malloc(max_key_size * sizeof(char));
+	
+	puts("before strncpy");		
+	strncpy(real_key, key, max_key_size - 1);
+	puts("after strncpy");
+	real_key[max_key_size - 2] = '\0'; 
+	puts("afeter null char");
 
-	mcrypt_generic_init(td, key, keysize, IV);
+	mcrypt_generic_init(td, real_key, max_key_size - 1, IV);
 	char block_buffer;
 	while (fread(&block_buffer, 1, 1, *plainfp) == 1) {
 		mcrypt_generic(td, &block_buffer, 1);
@@ -29,6 +36,7 @@ int encrypt_(
 	}
 	/* Deinit the encryption thread, and unload the module */
 	mcrypt_generic_end(td);
+	free(real_key);
 	
 	return 0;
 }
@@ -41,16 +49,18 @@ int encrypt_(
  * @param keysize size of key.
  */
 int decrypt_(
-	FILE **encrfp, FILE **decrfp, char *key, int keysize) {
+	FILE **encrfp, FILE **decrfp, char* key, int keysize) {
 	
 	MCRYPT td = mcrypt_module_open(
 		ALGORITHM, NULL, MODE, NULL);
 	// size in bytes
 	int max_key_size = mcrypt_enc_get_key_size(td);
-	if (keysize > max_key_size)
-		return 1;
 	
-	mcrypt_generic_init(td, key, keysize, IV);
+	char *real_key = malloc(max_key_size * sizeof(char));
+	strncpy(real_key, key, max_key_size - 1);
+	real_key[max_key_size - 2] = '\0'; 
+	
+	mcrypt_generic_init(td, real_key, max_key_size - 1, IV);
 	char block_buffer;
 	while (fread(&block_buffer, 1, 1, *encrfp) == 1) {
 		mdecrypt_generic(td, &block_buffer, 1);
@@ -58,7 +68,7 @@ int decrypt_(
 	}
 	/* Deinit the encryption thread, and unload the module*/
 	mcrypt_generic_end(td);
-	
+	free(real_key);	
 	return 0;
 }
 

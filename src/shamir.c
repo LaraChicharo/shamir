@@ -180,7 +180,7 @@ void create_shares(int nshares, int min, mpz_t secret, FILE* file) {
 	int nterms = min - 1;
 	mpz_t* polynomial = malloc(nterms * sizeof(mpz_t));
 	build_polynomial(&polynomial, nterms, secret);
-	print_polynomial(&polynomial, nterms);
+	//print_polynomial(&polynomial, nterms);
 	struct SHARE_* shares = malloc(sizeof(struct SHARE_) * nshares);
 
 	unsigned int i;
