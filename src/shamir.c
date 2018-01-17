@@ -161,11 +161,10 @@ void free_shares(struct SHARE_** shares, int n) {
 void print_shares(struct SHARE_** shares, int n, FILE* file) {
 	int i;
 	for (i=0; i<n; i++) {
-		fputs("(", file);
 		mpz_out_str(file, 10, (*shares)[i].x);
-		fputs(", ", file);
+		fputs(" ", file);
 		mpz_out_str(file, 10, (*shares)[i].y);
-		fputs(")\n", file);
+		fputs("\n", file);
 	}
 	fclose(file);
 }

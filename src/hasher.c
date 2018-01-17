@@ -14,8 +14,8 @@
  *@returns number.
  */
 void string_as_binary(
-	char **str, unsigned int str_size, char **buff) {
-	
+		char **str, unsigned int str_size, char **buff) {
+
 	int i;
 	int j;
 	char k;
@@ -56,16 +56,24 @@ void hash_string_to_binary_repr(char **str, char **buff) {
 	free(tempbuff);
 }
 
+void hash_string_to_int(char **str, char **buff) {
+	int str_len = strlen(*str);
+	char *tempbuff = malloc((sizeof(char) * 32) + 1);
+	hash_string(str, &tempbuff);
+	string_as_binary(&tempbuff, 33, buff);
+	free(tempbuff);
+}
+
 /*int main(int argc, char** argv) {
-	int str_len = strlen(argv[1]);
-	char *buff = malloc((sizeof(char) * 32 * 8) + 1);
-	hash_string_to_int(&argv[1], &buff);
-	/*string_as_binary(
-		&argv[1], str_len + 1, &buff);*/
-	/*printf("binary repr: %s\n", buff);
-	hash_string_to_binary_repr(&argv[1], &buff);
-	printf("binary repr: %s\n", buff);
-	free(buff);
-	return 0;
-}*/
+  int str_len = strlen(argv[1]);
+  char *buff = malloc((sizeof(char) * 32 * 8) + 1);
+  hash_string_to_int(&argv[1], &buff);
+/*string_as_binary(
+&argv[1], str_len + 1, &buff);*/
+/*printf("binary repr: %s\n", buff);
+  hash_string_to_binary_repr(&argv[1], &buff);
+  printf("binary repr: %s\n", buff);
+  free(buff);
+  return 0;
+  }*/
 

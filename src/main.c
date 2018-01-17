@@ -83,7 +83,7 @@ void validate_cipher_option(int argc, char** argv) {
 	if (argc != 6)
 		error_message(1, "Not enough arguments!");
 	if (!(strlen(argv[1]) < MAX_LEN_FILENAME &&
-		strlen(argv[5]) < MAX_LEN_FILENAME))
+				strlen(argv[5]) < MAX_LEN_FILENAME))
 		error_message(1, "Filename too long.");
 	int nshares = str_to_int(argv[3]);
 	if (nshares <= 2)
@@ -113,7 +113,7 @@ int get_namesize_encrypted_file(char* original_name) {
  */
 void get_name_encrypted_file(char* original_name, char** encname) {
 	char newname_[get_namesize_encrypted_file(original_name)];
-	
+
 	int i = 0;
 	while (original_name[i] != '\0') {
 		newname_[i] = original_name[i];
@@ -155,10 +155,10 @@ void get_name_decrypted_file(char* encname, char** original_name) {
  */
 void validate_decipher_option(char** argv) {
 	if (strlen(argv[2]) > MAX_LEN_FILENAME ||
-		strlen(argv[3]) > MAX_LEN_FILENAME)
+			strlen(argv[3]) > MAX_LEN_FILENAME)
 		error_message(1, "Filename too long.");
 	validate_file(
-		argv[2], "r", "Error reading file containing shares.");
+			argv[2], "r", "Error reading file containing shares.");
 	validate_file(argv[3], "r", "Error reading the encrypted file.");
 }
 
@@ -166,43 +166,76 @@ int main(int argc, char** argv) {
 	if (argc < 4)
 		error_message(1, "Too few arguments");
 	if (strcmp(argv[1], "c") == 0) {
-				
+
 		validate_cipher_option(argc, argv);
+
+		FILE *saved_eval = fopen(argv[2], "w");
+		int eval_number_required = str_to_int(argv[3]);
+		int minimum_points_needed = str_to_int(argv[4]);
+
 		char *pass = (char*)malloc(MAX_PASS_LEN * sizeof(char));
 		int keysize;
 
 		get_password(&pass, &keysize);
 
+		char *buff = malloc((sizeof(char) * 32 * 8) + 1);
+		hash_string_to_int(&argv[1], &buff);
+		mpz_t secret;
+		mpz_init2(secret, MPZ_LIMIT);
+		mpz_set_str(secret, buff, 2);
+
+		create_shares(
+				eval_number_required, minimum_points_needed, secret, saved_eval);
 		FILE *plainfp = fopen(argv[5], "r");
 		char* encname = malloc(
-			sizeof(char) * get_namesize_encrypted_file(argv[5]));
+				sizeof(char) * get_namesize_encrypted_file(argv[5]));
 		get_name_encrypted_file(argv[5], &encname);
 		FILE *encrfp = fopen(encname, "w");
-		
+
 		encrypt_(&plainfp, &encrfp, pass, keysize);
 
 		printf("Your pass: %s\n", pass);
 		free(pass);
 		free(encname);
 		fclose(plainfp);
+		mpz_clear(secret);
 		fclose(encrfp);
 	} else if (strcmp(argv[1], "d") == 0) {
 		validate_decipher_option(argv);
-		
+
+		FILE *read = fopen(argv[2], "r");
+		int length = define_length(read);
+		//if length = 1, i.e, there is only 1 point, an error ocurrs
+		struct SHARE_* evals = malloc(sizeof(struct SHARE_) * length - 1);
+		reader(read, &evals);
+		int i,j;
+
+		mpz_t * poly = malloc(length * sizeof(mpz_t));
+		init_polynomial(&poly, length);	
+
+		mpz_t **aux = malloc(length * sizeof(mpz_t*));
+		fill_aux_polynomial(&aux, length);
+
+		lagrange_basis(&evals, &aux, length);
+		rebuild_polynomial(&poly, &aux, &evals, length);
+
 		char *pass = (char*)malloc(MAX_PASS_LEN * sizeof(char));
-		int keysize;
+		mpz_out_str(stdout, 10, poly[0]);
+		mpz_get_str(pass, 10, poly[0]);
+	
 
-		get_password(&pass, &keysize);
-
-		FILE *encrfp = fopen(argv[3], "r");
 
 		char* original_name = malloc(
-			sizeof(char) * get_namesize_decrypted_file(argv[3]));
+				sizeof(char) * get_namesize_decrypted_file(argv[3]));
 		get_name_decrypted_file(argv[3], &original_name);
-		
-		FILE *decrfp = fopen(original_name, "w");
+		// printf("original_name: %s\n", original_name);
 
-		decrypt_(&encrfp, &decrfp, pass, keysize);
+		FILE *encrfp = fopen(argv[3], "r");
+		FILE *decrfp = fopen("decrypted", "w");
+
+		printf("pass:%s\n", pass);
+
+		decrypt_(&encrfp, &decrfp, pass, strlen(pass));
 
 		free(pass);
 		free(original_name);
@@ -210,8 +243,8 @@ int main(int argc, char** argv) {
 		fclose(decrfp);
 	} else {
 		error_message(
-			1,
-			"The first arg must be 'c' to encrypt or 'd' to decrypt.");
+				1,
+				"The first arg must be 'c' to encrypt or 'd' to decrypt.");
 	}
 	return 0;
 }
